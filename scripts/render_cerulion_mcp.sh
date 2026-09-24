@@ -9,10 +9,10 @@
 # file:// directory to test the formula from a local tap.
 set -eu
 
-[ "$#" -ge 2 ] && [ "$#" -le 3 ] || {
+if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
     echo "usage: $0 VERSION SHA256SUMS [BASE_URL]" >&2
     exit 2
-}
+fi
 version=$1
 sums=$2
 base=${3:-https://github.com/cerulion-inc/cerulion-mcp/releases/download/v$version}
@@ -21,7 +21,8 @@ out="$(dirname "$0")/../Formula/cerulion-mcp.rb"
 sha() {
     value=$(awk -v file="cerulion-mcp-$version-$1.tar.gz" '$2 == file || $2 == "*" file { print $1 }' "$sums")
     case "$value" in
-        [0-9a-f][0-9a-f][0-9a-f][0-9a-f]*) [ "${#value}" -eq 64 ] && { echo "$value"; return; } ;;
+        "" | *[!0-9a-f]*) ;;
+        *) [ "${#value}" -eq 64 ] && { echo "$value"; return; } ;;
     esac
     echo "error: $sums has no sha256 for cerulion-mcp-$version-$1.tar.gz" >&2
     exit 1
