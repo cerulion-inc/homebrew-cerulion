@@ -33,12 +33,15 @@ linux_x86=$(sha x86_64-unknown-linux-gnu)
 
 cat > "$out" <<RUBY
 # Rendered by scripts/render_cerulion_mcp.sh from the cerulion-mcp release
-# workflow's SHA256SUMS. Do not edit by hand.
+# workflow's SHA256SUMS. Do not edit by hand.${NOTE:+
+# $NOTE}
 class CerulionMcp < Formula
   desc "MCP server that lets AI coding agents drive the Cerulion CLI"
   homepage "https://docs.cerulion.com/cerulion/guides/connect-an-mcp-client"
-  version "$version"
   license :cannot_represent
+
+  # The MCP server drives the Cerulion CLI as a separate process.
+  depends_on "cerulion-inc/cerulion/cerulion"
 
   on_macos do
     if Hardware::CPU.arm?
@@ -59,9 +62,6 @@ class CerulionMcp < Formula
       sha256 "$linux_x86"
     end
   end
-
-  # The MCP server drives the Cerulion CLI as a separate process.
-  depends_on "cerulion-inc/cerulion/cerulion"
 
   def install
     bin.install "bin/cerulion_mcp"
