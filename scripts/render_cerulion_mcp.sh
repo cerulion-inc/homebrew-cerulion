@@ -66,9 +66,10 @@ class CerulionMcp < Formula
 
   def install
     bin.install "bin/cerulion_mcp"
-    # Proprietary licence and the notices of the permissive crates the
-    # binary links; the archive's own README, client examples and demo
-    # workspace go beside them.
+    # Proprietary licence and the notices (licences and source revisions) of
+    # every crate the binary links, including its first-party AGPL-3.0
+    # crates; the archive's own README, client examples and demo workspace
+    # go beside them.
     doc.install "LICENSE", "THIRD_PARTY_NOTICES", "README.md", "manifest.json"
     pkgshare.install "config", "demo"
   end
