@@ -3,30 +3,30 @@ class Cerulion < Formula
   desc "Zero-copy, deterministic communication for real-time robotics"
   homepage "https://github.com/cerulion-inc/cerulion"
   license "AGPL-3.0-only"
-  version "1.0.0"
+  version "2.0.0"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/cerulion-inc/cerulion/releases/download/v1.0.0/cerulion-1.0.0-aarch64-apple-darwin.tar.gz"
-      sha256 "4ab7a66ac62aaa53e01a2d96ecc7a150234ca3a7acb84afb434471498947bcd3"
+      url "https://github.com/cerulion-inc/cerulion/releases/download/v2.0.0/cerulion-2.0.0-aarch64-apple-darwin.tar.gz"
+      sha256 "58fed1e4560ae060a5cfa4e380d1b192cdad600df8ece93d7292dddd1ec5d4a2"
     else
-      url "https://github.com/cerulion-inc/cerulion/releases/download/v1.0.0/cerulion-1.0.0-x86_64-apple-darwin.tar.gz"
-      sha256 "ab4d4295ce3f5229c1c05015677e7a348c3704465ae32bd487856f83dcaae91e"
+      url "https://github.com/cerulion-inc/cerulion/releases/download/v2.0.0/cerulion-2.0.0-x86_64-apple-darwin.tar.gz"
+      sha256 "89647614be48d6d9bd5c6cdfbcc3a4f4878f38fb421e7269f150eb1a788055ea"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/cerulion-inc/cerulion/releases/download/v1.0.0/cerulion-1.0.0-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "3e1228e7370fbc216e147287d0da51e438c55b356e97b3e14c109b003fb09c3c"
+      url "https://github.com/cerulion-inc/cerulion/releases/download/v2.0.0/cerulion-2.0.0-aarch64-unknown-linux-gnu.tar.gz"
+      sha256 "b308209d939d674bf8d80fb617e6ec5f5feaf96fc0fdab310f48cb6f09b4d723"
     else
-      url "https://github.com/cerulion-inc/cerulion/releases/download/v1.0.0/cerulion-1.0.0-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "a5fa81cc1d28b84fdc45d510f2d019df76612f215e2c50ba368c0a5809dcea92"
+      url "https://github.com/cerulion-inc/cerulion/releases/download/v2.0.0/cerulion-2.0.0-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "0d0074bad212bffc8a1a8fbd66bc9da79ad5b13fbd5b120bc9d063635af16ab9"
     end
   end
 
   def install
-    ["cerulion", "cerulion-netd", "cerulion-connectd"].each do |binary|
+    ["cerulion", "cerulion-netd", "cerulion-connectd", "cerulion-remoted"].each do |binary|
       path = Dir["{,*/}#{binary}"].find { |candidate| File.file?(candidate) }
       odie "release archive is missing #{binary}" unless path
       bin.install path
@@ -57,16 +57,19 @@ class Cerulion < Formula
       doc.install path
     end
 
+    # The install-provenance marker the CLI reports as its install method in
+    # usage telemetry: share/cerulion/install.json one level above its bin.
+    (share/"cerulion").mkpath
+    (share/"cerulion/install.json").write "{\"method\":\"brew\",\"version\":\"#{version}\"}\n"
+
     # Homebrew runs the install with HOME pointing at a directory it deletes
     # afterwards, so a formula cannot put a Rust toolchain in the home folder
-    # of the person installing it. Carry the archive's own setup helper and
-    # the compiler fingerprint it reads, and hand over one command instead.
+    # of the person installing it. Carry the archive's own setup helper, which
+    # installs current stable Rust (1.95 or newer), and hand over one command
+    # instead.
     helper = Dir["{,*/}install_rust.sh"].find { |candidate| File.file?(candidate) }
-    metadata = Dir["{,*/}rustc-version.txt"].find { |candidate| File.file?(candidate) }
-    odie "release archive carries only part of its Rust setup" if helper.nil? != metadata.nil?
     if helper
       libexec.install helper
-      libexec.install metadata
       (bin/"cerulion-install-rust").write <<~WRAPPER
         #!/bin/sh
         if [ "$#" -ne 0 ]; then
@@ -76,7 +79,7 @@ class Cerulion < Formula
         # The helper speaks for the archive installer, whose failure arms say
         # the Cerulion binaries were left alone. Here they are already
         # installed and nothing was staged to replace, so say what happened.
-        /bin/sh "#{opt_libexec}/install_rust.sh" "#{opt_libexec}/rustc-version.txt"
+        /bin/sh "#{opt_libexec}/install_rust.sh"
         status=$?
         if [ "$status" -ne 0 ]; then
             echo "The Cerulion programs are installed; only the compiler setup failed." >&2
@@ -93,8 +96,8 @@ class Cerulion < Formula
   # command before anyone installs anything.
   def caveats
     <<~TEXT
-      Running Cerulion needs nothing further. Building your own nodes needs the
-      exact Rust compiler that built this release, which is one command, once:
+      Running Cerulion needs nothing further. Building your own nodes needs
+      Rust 1.95 or newer. Install current stable Rust with:
 
         cerulion-install-rust
 
