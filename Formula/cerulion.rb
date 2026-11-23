@@ -3,25 +3,25 @@ class Cerulion < Formula
   desc "Zero-copy, deterministic communication for real-time robotics"
   homepage "https://github.com/cerulion-inc/cerulion"
   license "AGPL-3.0-only"
-  version "2.0.0"
+  version "2.1.0"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/cerulion-inc/cerulion/releases/download/v2.0.0/cerulion-2.0.0-aarch64-apple-darwin.tar.gz"
-      sha256 "58fed1e4560ae060a5cfa4e380d1b192cdad600df8ece93d7292dddd1ec5d4a2"
+      url "https://github.com/cerulion-inc/cerulion/releases/download/v2.1.0/cerulion-2.1.0-aarch64-apple-darwin.tar.gz"
+      sha256 "074026954e2bdbe3947992dac7d09665812774831ec10dfd1f20a50e922fe551"
     else
-      url "https://github.com/cerulion-inc/cerulion/releases/download/v2.0.0/cerulion-2.0.0-x86_64-apple-darwin.tar.gz"
-      sha256 "89647614be48d6d9bd5c6cdfbcc3a4f4878f38fb421e7269f150eb1a788055ea"
+      url "https://github.com/cerulion-inc/cerulion/releases/download/v2.1.0/cerulion-2.1.0-x86_64-apple-darwin.tar.gz"
+      sha256 "a40e2cd4c4a851742d6dd62d603c739f8f7e99162c435d374fd382db16f639e4"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/cerulion-inc/cerulion/releases/download/v2.0.0/cerulion-2.0.0-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "b308209d939d674bf8d80fb617e6ec5f5feaf96fc0fdab310f48cb6f09b4d723"
+      url "https://github.com/cerulion-inc/cerulion/releases/download/v2.1.0/cerulion-2.1.0-aarch64-unknown-linux-gnu.tar.gz"
+      sha256 "8e3c85d7bb299230b8ac6c8e0f6d51fb666e0b91764075669449e126709bba97"
     else
-      url "https://github.com/cerulion-inc/cerulion/releases/download/v2.0.0/cerulion-2.0.0-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "0d0074bad212bffc8a1a8fbd66bc9da79ad5b13fbd5b120bc9d063635af16ab9"
+      url "https://github.com/cerulion-inc/cerulion/releases/download/v2.1.0/cerulion-2.1.0-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "41a69c359d83ed7e7bd66c6897a9b9a46e229f80e3bb7f3038ba48703611d67d"
     end
   end
 
@@ -42,6 +42,13 @@ class Cerulion < Formula
         bin.install path
       end
     end
+
+    # The agent harness tree ships in every archive and sits beside the CLI,
+    # where the CLI looks for it. Homebrew links no directory under bin onto
+    # the PATH, so it stays in the keg beside the binaries.
+    harness = Dir["{,*/}harness"].find { |candidate| File.directory?(candidate) && !File.symlink?(candidate) }
+    odie "release archive is missing harness" unless harness
+    bin.install harness
 
     # The license notices the archive carries. Installing these binaries
     # redistributes the dependency graph they statically link, and most of
@@ -112,5 +119,8 @@ class Cerulion < Formula
 
   test do
     assert_match version.to_s, shell_output("#{bin}/cerulion --version")
+    assert_predicate bin/"harness", :directory?
+    assert_predicate bin/"harness/rcp.sh", :file?
+    assert_predicate bin/"harness/install.sh", :file?
   end
 end
